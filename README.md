@@ -37,9 +37,9 @@ the server organized the API Endpoint for each system like Auth System and Deliv
 
 - Node.js / JavaScript  
 - `ws` or `websocket.js`
-- Express
-- Neon DB or PosgresSQL
-- Bcrypt, HTTP, JWT, CORS ETC.
+- `Express`
+- `Neon DB` or `PosgresSQL`
+- `Bcrypt`, `HTTP`, `JWT`, `CORS` ETC.
 
 ---
 
@@ -49,8 +49,8 @@ the server organized the API Endpoint for each system like Auth System and Deliv
 
 Make sure you have:
 
-- Node.js (v14+, v16+)
-- npm  
+- `Node.js` (v14+, v16+)
+- `npm`  
 
 ### Installation
 
@@ -58,6 +58,7 @@ Make sure you have:
 git clone https://github.com/John-Patrick-Russel-Lalo/backend-server.git
 cd backend-server
 npm install
+```
 
 
 
