@@ -36,9 +36,10 @@ the server organized the API Endpoint for each system like Auth System and Deliv
 ## 🛠 Technologies
 
 - Node.js / JavaScript  
-- `ws` or `websocket.js` (or whatever WebSocket library you used)  
-- Express (or native HTTP)  
-- Others (mention any middlewares, DB, etc.)
+- `ws` or `websocket.js`
+- Express
+- Neon DB or PosgresSQL
+- Bcrypt, HTTP, JWT, CORS ETC.
 
 ---
 
@@ -48,8 +49,8 @@ the server organized the API Endpoint for each system like Auth System and Deliv
 
 Make sure you have:
 
-- Node.js (v14+, v16+, or whichever version your project uses)  
-- npm or yarn  
+- Node.js (v14+, v16+)
+- npm  
 
 ### Installation
 
@@ -57,5 +58,6 @@ Make sure you have:
 git clone https://github.com/John-Patrick-Russel-Lalo/backend-server.git
 cd backend-server
 npm install
+
 
 
