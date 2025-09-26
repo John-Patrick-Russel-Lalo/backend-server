@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Location Sharing with Leaflet Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; }
+    #map { height: 400px; margin-bottom: 20px; }
+    input, button { margin: 5px 0; padding: 8px; width: 100%; box-sizing: border-box; }
+    button { background: #007bff; color: white; border: none; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    .log { margin-top: 15px; background: #f0f0f0; padding: 10px; height: 120px; overflow-y: auto; border: 1px solid #ccc; font-size: 14px; }
+    .success { color: #28a745; }
+    .error { color: #dc3545; }
+  </style>
+</head>
+<body>
+  <h1>Location Sharing with Leaflet Map</h1>
+  <div>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+    <button id="loginBtn">Login</button>
+    <button id="logoutBtn" style="display:none;">Logout</button>
+    <div id="userIdInfo" style="margin: 10px 0; font-weight: bold;"></div>
+  </div>
+
+  <div id="locationSection" style="display:none;">
+    <label>Target User ID: <input type="text" id="targetId" placeholder="User ID to share location with"></label>
+    <button id="connectWsBtn">Connect WebSocket</button>
+    <button id="getLocationBtn">Get My Location</button>
+    <button id="sendLocationBtn">Send My Location</button>
+    <div>
+      <label>Latitude: <input type="number" id="lat" step="any"></label>
+      <label>Longitude: <input type="number" id="lng" step="any"></label>
+    </div>
+  </div>
+
+  <div id="map"></div>
+  <div class="log" id="log"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const API_URL = "http://localhost:3000";
+    let accessToken = null;
+    let ws;
+    let isIdentified = false;
+    let currentUserId = null;
+    let myMarker = null;
+    let otherMarkers = {};
+
+    // Initialize Leaflet map
+    const map = L.map('map').setView([13.41, 122.56], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    function log(msg, type = '') {
+      const logDiv = document.getElementById("log");
+      const className = type === 'success' ? 'success' : type === 'error' ? 'error' : '';
+      logDiv.innerHTML += `<div class="${className}">${msg}</div>`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function decodeToken(token) {
+      if (!token) return null;
+      try {
+        return JSON.parse(atob(token.split('.')[1]));
+      } catch (err) {
+        return null;
+      }
+    }
+
+    async function login() {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      if (!email || !password) {
+        log("Please enter email and password.", 'error');
+        return;
+      }
+      try {
+        const res = await fetch(`${API_URL}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+          credentials: "include"
+        });
+        const data = await res.json();
+        if (res.ok) {
+          accessToken = data.accessToken;
+          const userInfo = decodeToken(accessToken);
+          currentUserId = userInfo.userId;
+          document.getElementById('userIdInfo').textContent = "Your User ID: " + currentUserId;
+          document.getElementById('locationSection').style.display = '';
+          document.getElementById('loginBtn').style.display = 'none';
+          document.getElementById('logoutBtn').style.display = '';
+          log("Logged in as " + currentUserId, 'success');
+        } else {
+          log("Login failed: " + (data.error || "Unknown error"), 'error');
+        }
+      } catch (err) {
+        log("Login error: " + err.message, 'error');
+      }
+    }
+
+    async function logout() {
+      try {
+        await fetch(`${API_URL}/logout`, {
+          method: "POST",
+          credentials: "include"
+        });
+        accessToken = null;
+        currentUserId = null;
+        document.getElementById('userIdInfo').textContent = "";
+        document.getElementById('locationSection').style.display = 'none';
+        document.getElementById('loginBtn').style.display = '';
+        document.getElementById('logoutBtn').style.display = 'none';
+        log("Logged out.", 'success');
+        if (ws) ws.close();
+        if (myMarker) { map.removeLayer(myMarker); myMarker = null; }
+        Object.values(otherMarkers).forEach(marker => map.removeLayer(marker));
+        otherMarkers = {};
+      } catch (err) {
+        log("Logout error: " + err.message, 'error');
+      }
+    }
+
+    document.getElementById('loginBtn').onclick = login;
+    document.getElementById('logoutBtn').onclick = logout;
+
+    document.getElementById('connectWsBtn').onclick = function() {
+      ws = new WebSocket('ws://localhost:3000');
+      isIdentified = false;
+      ws.onopen = function() {
+        log('WebSocket connected');
+        if (!accessToken) {
+          log('No access token found - please login again', 'error');
+          return;
+        }
+        ws.send(JSON.stringify({
+          type: 'identify',
+          accessToken: accessToken,
+          targetId: document.getElementById('targetId').value
+        }));
+      };
+      ws.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        if (data.type === 'identified') {
+          isIdentified = true;
+          log('WebSocket identified. You can now share your location.', 'success');
+        }
+        if (data.type === 'location-update') {
+          log(`Received location from user ${data.from}: lat=${data.lat}, lng=${data.lng}`, 'success');
+          showOtherMarker(data.from, data.lat, data.lng);
+        }
+        if (data.type === 'error') {
+          log('WS Error: ' + data.message, 'error');
+        }
+      };
+      ws.onclose = function() {
+        log('WebSocket disconnected');
+        isIdentified = false;
+      };
+    };
+
+    document.getElementById('getLocationBtn').onclick = function() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((position) => {
+          document.getElementById('lat').value = position.coords.latitude;
+          document.getElementById('lng').value = position.coords.longitude;
+          showMyMarker(position.coords.latitude, position.coords.longitude);
+          log('Location fetched from browser', 'success');
+        }, () => {
+          log('Unable to fetch location.', 'error');
+        });
+      } else {
+        log('Geolocation is not supported by this browser.', 'error');
+      }
+    };
+
+    document.getElementById('sendLocationBtn').onclick = function() {
+      if (!ws || ws.readyState !== 1) {
+        log('WebSocket not connected', 'error');
+        return;
+      }
+      if (!isIdentified) {
+        log('You must be identified before sending location!', 'error');
+        return;
+      }
+      const lat = parseFloat(document.getElementById('lat').value);
+      const lng = parseFloat(document.getElementById('lng').value);
+      const targetId = document.getElementById('targetId').value;
+      ws.send(JSON.stringify({
+        type: 'location',
+        targetId: targetId,
+        lat: lat,
+        lng: lng
+      }));
+      log(`Location sent to ${targetId}: lat=${lat}, lng=${lng}`, 'success');
+      showMyMarker(lat, lng);
+    };
+
+    function showMyMarker(lat, lng) {
+      if (myMarker) map.removeLayer(myMarker);
+      myMarker = L.marker([lat, lng], { title: "My Location" }).addTo(map)
+        .bindPopup("My Location").openPopup();
+      map.setView([lat, lng], 13);
+    }
+
+    function showOtherMarker(userId, lat, lng) {
+      if (otherMarkers[userId]) map.removeLayer(otherMarkers[userId]);
+      otherMarkers[userId] = L.marker([lat, lng], { title: "User " + userId, color: "red" }).addTo(map)
+        .bindPopup("User " + userId).openPopup();
+    }
+  </script>
+</body>
+</html>
