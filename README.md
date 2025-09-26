@@ -2,8 +2,8 @@
 
 # backend-server
 
-A backend server for [Your Project / Purpose].  
-(Replace this line with a short description of what this server does — e.g. “Handles API for chat app”, “WebSocket + HTTP server for map updates”, etc.)
+A backend server for Real-Time Delivery Tracking and also for Ordering System
+the server organized the API Endpoint for each system like Auth System and Delivery Tracking etc.
 
 ---
 
@@ -57,4 +57,5 @@ Make sure you have:
 git clone https://github.com/John-Patrick-Russel-Lalo/backend-server.git
 cd backend-server
 npm install
+
 
