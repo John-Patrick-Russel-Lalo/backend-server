@@ -30,6 +30,8 @@
     <button id="connectWsBtn">Connect WebSocket</button>
     <button id="getLocationBtn">Get My Location</button>
     <button id="sendLocationBtn">Send My Location</button>
+    <button id="allowLiveBtn">Allow Live Share</button>
+    <button id="stopLiveBtn" style="display:none;">Stop Sharing</button>
     <div>
       <label>Latitude: <input type="number" id="lat" step="any"></label>
       <label>Longitude: <input type="number" id="lng" step="any"></label>
@@ -48,6 +50,7 @@
     let currentUserId = null;
     let myMarker = null;
     let otherMarkers = {};
+    let liveShareInterval = null;
 
     // Initialize Leaflet map
     const map = L.map('map').setView([13.41, 122.56], 6);
@@ -121,6 +124,7 @@
         if (myMarker) { map.removeLayer(myMarker); myMarker = null; }
         Object.values(otherMarkers).forEach(marker => map.removeLayer(marker));
         otherMarkers = {};
+        stopLiveShare();
       } catch (err) {
         log("Logout error: " + err.message, 'error');
       }
@@ -161,6 +165,7 @@
       ws.onclose = function() {
         log('WebSocket disconnected');
         isIdentified = false;
+        stopLiveShare();
       };
     };
 
@@ -180,6 +185,10 @@
     };
 
     document.getElementById('sendLocationBtn').onclick = function() {
+      sendLocationOnce();
+    };
+
+    function sendLocationOnce() {
       if (!ws || ws.readyState !== 1) {
         log('WebSocket not connected', 'error');
         return;
@@ -199,7 +208,45 @@
       }));
       log(`Location sent to ${targetId}: lat=${lat}, lng=${lng}`, 'success');
       showMyMarker(lat, lng);
+    }
+
+    // Live sharing logic
+    document.getElementById('allowLiveBtn').onclick = function() {
+      if (!ws || ws.readyState !== 1) {
+        log('WebSocket not connected', 'error');
+        return;
+      }
+      if (!isIdentified) {
+        log('You must be identified before sharing location!', 'error');
+        return;
+      }
+      document.getElementById('allowLiveBtn').style.display = 'none';
+      document.getElementById('stopLiveBtn').style.display = '';
+      log('Live sharing started.', 'success');
+      liveShareInterval = setInterval(() => {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition((position) => {
+            document.getElementById('lat').value = position.coords.latitude;
+            document.getElementById('lng').value = position.coords.longitude;
+            sendLocationOnce();
+          });
+        }
+      }, 3000); // Send every 3 seconds
     };
+
+    document.getElementById('stopLiveBtn').onclick = function() {
+      stopLiveShare();
+    };
+
+    function stopLiveShare() {
+      if (liveShareInterval) {
+        clearInterval(liveShareInterval);
+        liveShareInterval = null;
+        log('Live sharing stopped.', 'success');
+      }
+      document.getElementById('allowLiveBtn').style.display = '';
+      document.getElementById('stopLiveBtn').style.display = 'none';
+    }
 
     function showMyMarker(lat, lng) {
       if (myMarker) map.removeLayer(myMarker);

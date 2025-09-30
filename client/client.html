@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Auth Client</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      --bg-light: #f5f6fa;
+      --bg-dark: #181a1b;
+      --card-light: #fff;
+      --card-dark: #23272b;
+      --text-light: #222;
+      --text-dark: #eee;
+      --primary: #007bff;
+      --primary-dark: #339af0;
+      --border: #444;
+      --error: #dc3545;
+      --success: #28a745;
+    }
+    body {
+      font-family: 'Inter', Arial, sans-serif;
+      background: var(--bg-light);
+      color: var(--text-light);
+      margin: 0;
+      min-height: 100vh;
+      transition: background 0.3s, color 0.3s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .darkmode {
+      background: var(--bg-dark);
+      color: var(--text-dark);
+    }
+    .container {
+      width: 100%;
+      max-width: 400px;
+      margin: 40px auto 0 auto;
+      padding: 24px;
+      background: var(--card-light);
+      border-radius: 16px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+      transition: background 0.3s;
+    }
+    .darkmode .container {
+      background: var(--card-dark);
+      box-shadow: 0 2px 16px rgba(0,0,0,0.25);
+    }
+    h1 {
+      text-align: center;
+      font-weight: 700;
+      margin-bottom: 24px;
+      letter-spacing: 1px;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    input {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: inherit;
+      font-size: 1rem;
+      transition: border 0.2s;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    button {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 4px;
+    }
+    button:hover, button:focus {
+      background: var(--primary-dark);
+    }
+    .toggle-mode {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      margin-bottom: 16px;
+      gap: 8px;
+    }
+    .log {
+      margin-top: 18px;
+      background: rgba(0,0,0,0.04);
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.97rem;
+      min-height: 60px;
+      max-height: 180px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      transition: background 0.3s, color 0.3s;
+    }
+    .darkmode .log {
+      background: rgba(255,255,255,0.04);
+      color: var(--text-dark);
+      border-color: #333;
+    }
+    .success { color: var(--success); }
+    .error { color: var(--error); }
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      margin-top: 8px;
+      letter-spacing: 0.5px;
+    }
+    @media (max-width: 500px) {
+      .container { padding: 12px; }
+      h1 { font-size: 1.3rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="toggle-mode">
+      <span id="modeLabel">🌙 Dark Mode</span>
+      <label>
+        <input type="checkbox" id="modeSwitch" style="accent-color:var(--primary);">
+      </label>
+    </div>
+    <h1>Auth Client</h1>
+
+    <form id="signupForm">
+      <div class="section-title">Signup</div>
+      <input type="text" name="name" placeholder="Name" required autocomplete="name">
+      <input type="email" name="email" placeholder="Email" required autocomplete="email">
+      <input type="password" name="password" placeholder="Password" required autocomplete="new-password">
+      <button type="submit">Signup</button>
+    </form>
+
+    <form id="loginForm">
+      <div class="section-title">Login</div>
+      <input type="email" name="email" placeholder="Email" required autocomplete="email">
+      <input type="password" name="password" placeholder="Password" required autocomplete="current-password">
+      <button type="submit">Login</button>
+    </form>
+
+    <form id="logoutForm">
+      <div class="section-title">Logout</div>
+      <button type="submit">Logout</button>
+    </form>
+    
+    <div id="log" class="log"></div>
+  </div>
+  <script src="script.js"></script>
+  <script>
+    // Dark/Light mode toggle
+    const modeSwitch = document.getElementById('modeSwitch');
+    const modeLabel = document.getElementById('modeLabel');
+    function setMode(dark) {
+      if (dark) {
+        document.body.classList.add('darkmode');
+        modeLabel.textContent = "☀️ Light Mode";
+      } else {
+        document.body.classList.remove('darkmode');
+        modeLabel.textContent = "🌙 Dark Mode";
+      }
+    }
+    modeSwitch.addEventListener('change', () => setMode(modeSwitch.checked));
+    // Optionally, remember mode in localStorage
+    if (localStorage.getItem('darkmode') === 'true') {
+      modeSwitch.checked = true;
+      setMode(true);
+    }
+    modeSwitch.addEventListener('change', () => {
+      localStorage.setItem('darkmode', modeSwitch.checked ? 'true' : 'false');
+    });
+  </script>
+</body>
+</html>
